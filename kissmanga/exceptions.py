@@ -1,0 +1,2 @@
+class FolderCreationError(Exception):
+    pass
