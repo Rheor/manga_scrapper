@@ -41,7 +41,7 @@ class KissmangaAggregator(Aggregator):
 
         for manga_link in mangas_links:
             relative_url = manga_link.get("href")
-            manga_name = manga_link.text
+            manga_name = "".join(char for char in manga_link.text if char.isalnum())
             manga_url = f"{KISSMANGA_BASE_PATH}{relative_url}"
             path_prefix = f"{LIBRARY_PATH}/{manga_name}"
             create_dir(path_prefix)
