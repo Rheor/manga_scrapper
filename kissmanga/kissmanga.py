@@ -13,16 +13,21 @@ from kissmanga.config import (
 )
 from kissmanga import Aggregator
 from kissmanga.helpers import create_dir, make_request
+from kissmanga.exceptions import FailedAsyncHttpRequest
 from kissmanga.manga import MangaAggregator
 
 
 class KissmangaAggregator(Aggregator):
     async def __init__(
-        self, navigation_url, navigation_params_placeholder=MANGA_NAVIGATION_PARAMS
+        self,
+        navigation_url,
+        semaphore,
+        navigation_params_placeholder=MANGA_NAVIGATION_PARAMS,
     ):
         self.page_num = 0
         self.navigation_params_placeholder = navigation_params_placeholder
         self.navigation_url = navigation_url
+        self.semaphore = semaphore
         await super().__init__(self._get_page_url())
         self.last_page = self._get_last_page()
         self.mangas = {}
@@ -71,17 +76,23 @@ class KissmangaAggregator(Aggregator):
         return self.page_num <= self.last_page
 
     async def _retrieve_manga_chapters(self, manga_name, manga_url):
-        manga_aggregator = await MangaAggregator(manga_url)
-        await manga_aggregator.aggregate_content()
-        self.mangas[manga_name]["chapters"] = manga_aggregator.chapters
+        async with self.semaphore:
+            print(f"Retrieving data for manga {manga_name}")
+            try:
+                manga_aggregator = await MangaAggregator(manga_url)
+                await manga_aggregator.aggregate_content()
+                self.mangas[manga_name]["chapters"] = manga_aggregator.chapters
+            except FailedAsyncHttpRequest:
+                # This occurs when a chapter content cannot be retrieved
+                # as a rule of thumb we consider the manga retrieval failed
+                # Who would want a missing chapter in the middle of reading ? :)
+                print(f"Failed to retrieve data for manga {manga_name}")
 
     async def aggregate_content(self):
         while await self._paginate():
             print("paginating")
             print(self.page_num)
             self._scrap_page_content()
-
-        print(self.mangas)
 
         return await asyncio.gather(
             *[
@@ -91,8 +102,8 @@ class KissmangaAggregator(Aggregator):
         )
 
 
-async def kissmanga():
-    kissmanga = await KissmangaAggregator(KISSMANGA_LIST_URL)
+async def kissmanga(semaphore):
+    kissmanga = await KissmangaAggregator(KISSMANGA_LIST_URL, semaphore)
     gathering = await kissmanga.aggregate_content()
 
     print(json.dumps(kissmanga.mangas))

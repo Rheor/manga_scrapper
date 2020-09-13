@@ -2,6 +2,7 @@ import aiohttp
 
 from bs4 import BeautifulSoup
 from kissmanga.helpers import make_request
+from kissmanga.exceptions import FailedAsyncHttpRequest
 
 
 class Aggregator:
@@ -13,6 +14,8 @@ class Aggregator:
     async def __init__(self, navigation_url):
         async with aiohttp.ClientSession() as session:
             raw_content = await make_request(session, navigation_url)
+            if raw_content is None:
+                raise FailedAsyncHttpRequest()
             self.soup = BeautifulSoup(raw_content, "html.parser")
 
     def aggregate_content(self):
