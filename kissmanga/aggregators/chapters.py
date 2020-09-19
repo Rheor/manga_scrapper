@@ -1,4 +1,4 @@
-from kissmanga import Aggregator
+from kissmanga.aggregators import Aggregator
 from bs4 import BeautifulSoup
 
 

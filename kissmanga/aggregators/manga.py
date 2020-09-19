@@ -2,18 +2,22 @@ import time
 import asyncio
 from bs4 import BeautifulSoup
 
-from kissmanga import Aggregator
+from kissmanga.aggregators import Aggregator
 from kissmanga.config import KISSMANGA_BASE_PATH, MANGA_NAVIGATION_PARAMS
 from kissmanga.helpers import create_dir
-from kissmanga.chapters import ChapterAggregator
+from kissmanga.aggregators.chapters import ChapterAggregator
 
 
 class MangaAggregator(Aggregator):
     async def __init__(
-        self, navigation_url, navigation_params_placeholder=MANGA_NAVIGATION_PARAMS
+        self,
+        navigation_url,
+        downloader,
+        navigation_params_placeholder=MANGA_NAVIGATION_PARAMS,
     ):
         await super().__init__(navigation_url)
         self.navigation_url = navigation_url
+        self.downloader = downloader
         self.navigation_params_placeholder = navigation_params_placeholder
         self.chapters = {}
         # self.path_prefix = path_prefix

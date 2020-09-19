@@ -1,13 +1,17 @@
 import asyncio
-from kissmanga.kissmanga import kissmanga
+from kissmanga.aggregators.website import kissmanga
 from kissmanga.config import NUM_CONCURRENT_TASKS
+
+# point is to have the possibility to switch downloader at the entrypoint of the project
+# in the  future when needs ask for it
+# ex: send the files to an upstream bucket / filesystem
+# for now, we use a downloader that handles downloading locally
+from kissmanga.downloader import LocalMangaDownloader
 
 
 def main():
     semaphore = asyncio.Semaphore(NUM_CONCURRENT_TASKS)
-    loop = asyncio.get_event_loop()
-    kissmanga_gathering = kissmanga(semaphore)
-    loop.run_until_complete(kissmanga_gathering)
+    asyncio.run(kissmanga(semaphore, LocalMangaDownloader))
 
 
 if __name__ == "__main__":

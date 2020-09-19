@@ -11,10 +11,10 @@ from kissmanga.config import (
     KISSMANGA_LIST_URL,
     MANGA_NAVIGATION_PARAMS,
 )
-from kissmanga import Aggregator
-from kissmanga.helpers import create_dir, make_request
+from kissmanga.aggregators import Aggregator
+from kissmanga.helpers import make_request
 from kissmanga.exceptions import FailedAsyncHttpRequest
-from kissmanga.manga import MangaAggregator
+from kissmanga.aggregators.aggregators import MangaAggregator
 
 
 class KissmangaAggregator(Aggregator):
@@ -22,12 +22,14 @@ class KissmangaAggregator(Aggregator):
         self,
         navigation_url,
         semaphore,
+        downloader,
         navigation_params_placeholder=MANGA_NAVIGATION_PARAMS,
     ):
         self.page_num = 0
         self.navigation_params_placeholder = navigation_params_placeholder
         self.navigation_url = navigation_url
         self.semaphore = semaphore
+        self.downloader = downloader()
         await super().__init__(self._get_page_url())
         self.last_page = self._get_last_page()
         self.mangas = {}
@@ -94,17 +96,16 @@ class KissmangaAggregator(Aggregator):
             print(self.page_num)
             self._scrap_page_content()
 
-        return await asyncio.gather(
+        await asyncio.gather(
             *[
                 self._retrieve_manga_chapters(manga_name, manga_value["manga_url"])
                 for manga_name, manga_value in self.mangas.items()
             ]
         )
 
+        await self.downloader.build_tree(self.mangas)
 
-async def kissmanga(semaphore):
-    kissmanga = await KissmangaAggregator(KISSMANGA_LIST_URL, semaphore)
-    gathering = await kissmanga.aggregate_content()
 
-    print(json.dumps(kissmanga.mangas))
-    return gathering
+async def kissmanga(semaphore, downloader):
+    kissmanga = await KissmangaAggregator(KISSMANGA_LIST_URL, semaphore, downloader)
+    await kissmanga.aggregate_content()
